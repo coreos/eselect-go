@@ -5,6 +5,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([foreign 1.13 -Wall -Wno-portability subdir-objects])
 
 AC_PROG_CC
+AC_PROG_LN_S
 
 AC_USE_SYSTEM_EXTENSIONS
 
