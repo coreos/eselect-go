@@ -3,7 +3,15 @@ Makefile.in
 aclocal.m4
 autom4te.cache/
 build-aux/
+config.h
+config.h.in
 config.log
 config.status
 configure
+go
 go.eselect
+stamp-h1
+.deps/
+.dirstamp
+*.o
+*~
