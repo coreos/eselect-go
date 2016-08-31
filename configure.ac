@@ -8,6 +8,9 @@ AC_PROG_CC
 
 AC_USE_SYSTEM_EXTENSIONS
 
+# Only used for unit tests.
+AM_PATH_GLIB_2_0([2.20.0])
+
 # Create output files.
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile go.eselect])

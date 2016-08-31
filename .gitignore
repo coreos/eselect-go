@@ -9,9 +9,12 @@ config.log
 config.status
 configure
 go
+go-wrapper-tests
 go.eselect
 stamp-h1
 .deps/
 .dirstamp
+*.log
 *.o
+*.trs
 *~
