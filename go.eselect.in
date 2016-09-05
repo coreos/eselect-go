@@ -1,0 +1,139 @@
+# Copyright 2016 CoreOS, Inc.
+# Copyright 1999-2014 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+
+DESCRIPTION="Manage Go version preferences"
+VERSION="@PACKAGE_VERSION@"
+
+ENV_D_PATH="${EROOT%/}/etc/env.d"
+LIB_PATH="${EROOT%/}/usr/lib/"
+
+# Find a list of Go versions
+find_targets() {
+	local path
+
+	for path in "${LIB_PATH}"go[[:digit:]]*.[[:digit:]]*; do
+		if [[ -f "${path}/bin/go" ]]; then
+			echo "${path#${LIB_PATH}}"
+		fi
+	done
+}
+
+set_target() {
+	local target="${1}" targets=($(find_targets))
+
+	if is_number "${target}" && [[ ${target} -ge 1 ]]; then
+		target=${targets[$((${target} - 1))]}
+	fi
+
+	if ! has ${target} "${targets[@]}"; then
+		die -q "Invalid target ${target}"
+	fi
+
+	if [[ ! -d "${LIB_PATH}${target}" ]]; then
+		die -q "Target \"${1}\" doesn't appear to be valid!"
+	fi
+
+	mkdir -p "${ENV_D_PATH}/go" && \
+		echo "${target}" > "${ENV_D_PATH}/go/config" || \
+		die -q "Can't set Go version"
+}
+
+### show action ###
+
+describe_show() {
+	echo "Show main active Go version"
+}
+
+do_show() {
+	cat "${ENV_D_PATH}/go/config"
+}
+
+### list action ###
+
+describe_list() {
+	echo "List installed Go versions"
+}
+
+do_list() {
+	local active i targets=()
+
+	active="$(do_show)"
+	targets=($(find_targets))
+
+	write_list_start "Available Go versions:"
+	for ((i = 0; i < ${#targets[@]}; i++)); do
+		if [[ ${targets[${i}]} == ${active} ]]; then
+			targets[${i}]="$(highlight_marker "${targets[${i}]}")"
+		fi
+	done
+	write_numbered_list -m "(none found)" "${targets[@]}"
+}
+
+### set action ###
+
+describe_set() {
+	echo "Set main active Go version"
+}
+
+describe_set_parameters() {
+	echo "<target>"
+}
+
+do_set() {
+	if [[ $# -ne 1 ]]; then
+		die -q "'eselect go set' requires 1 argument"
+	else
+		set_target "${1}"
+	fi
+}
+
+### update action ###
+
+describe_update() {
+	echo "Switch to the latest Go version"
+}
+
+describe_update_options() {
+	echo "--if-unset    : Do not override existing selection"
+	echo "--ignore SLOT : Ignore SLOT when setting symlinks"
+}
+
+do_update() {
+	local if_unset="0" ignored_slots=() target targets=()
+	while [[ $# > 0 ]]; do
+		case "$1" in
+			--if-unset)
+				if_unset="1"
+				;;
+			--ignore)
+				ignored_slots+=("${2}")
+				shift;;
+			*)
+				die -q "Unrecognized argument '$1'"
+				;;
+		esac
+		shift
+	done
+
+	if [[ "${if_unset}" == "1" && -f "${ENV_D_PATH}/go/config" ]]; then
+		return
+	fi
+
+	targets=($(find_targets | sort --version-sort --reverse))
+
+	# Ignore slots
+	for slot in ${ignored_slots[@]}; do
+		targets=(${targets[@]/go${slot}/})
+	done
+
+	if [[ ${#targets[@]} -gt 0 ]]; then
+		target=${targets[0]}
+		echo "Switching to ${target}"
+		set_target "${target}"
+	else
+		die -q "No Go versions available"
+	fi
+}
+
+# vim: set ft=eselect :
